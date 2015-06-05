@@ -26,9 +26,19 @@ class RexleXPathParser
 
     a.map do |x|
 
-      if x =~ /\w+\[/ then
-        epath, predicate = x.match(/^([^\[]+)\[([^\]]+)\]/).captures
-        epath.split('/').map {|e| [:select, e]} + [:predicate, predicate]
+      if x =~ /[\w\/]+\[/ then
+        
+        epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
+        
+        r = if remainder.length > 0 then
+          remainder.slice!(0) if remainder[0] == '/'          
+          r = functionalise(match(remainder))
+        else
+          []
+        end
+        
+        epath.split('/').map {|e| [:select, e]} + [:predicate, predicate] + r
+        
       elsif x =~ /\|/
         [:union] 
       elsif x =~ /\w+\(/

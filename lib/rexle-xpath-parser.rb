@@ -10,7 +10,9 @@ class RexleXPathParser
   def initialize(string)
     
     tokens = tokenise string
+    #puts 'tokens: ' + tokens.inspect
     nested_tokens = tokens.map {|x| scan(x)}
+    #puts 'nested_tokens: ' + nested_tokens.inspect
     @to_a = functionalise nested_tokens
     
   end
@@ -63,39 +65,8 @@ class RexleXPathParser
 
     [c, token.join, remainder]
   end
+
   
-  # tokeniser e.g. "a | d(c)" #=> ["a", " | ", "d(c)"] 
-  #
-  def match(s)
-
-    a = []
-
-    if s =~ /^\w+\(/ then
-
-      found, token, remainder = lmatch(s.chars, '(',')')
-
-      if found == ')' then
-        a << token
-      end
-
-    elsif s =~ /^\w+\[/
-      found, token, remainder = lmatch(s.chars, '[',']') 
-      a << token
-    else
-      token = s.slice!(/\w+/)
-      a << token
-      remainder = s
-    end
-
-    operator = remainder.slice!(/^\s*\|\s*/)
-
-    if operator then
-      a.concat [operator, *match(remainder)]
-    end
-    
-    a
-  end
-   
   # matches a right bracket for a left bracket which has already been found. 
   #
   def rmatch(a, lchar, rchar)
@@ -123,6 +94,47 @@ class RexleXPathParser
     [c, token.join, remainder]
   end
 
+  # tokeniser e.g. "a | d(c)" #=> ["a", " | ", "d(c)"] 
+  #
+  def match(s)
+
+    a = []
+
+    if s =~ /^\w+\(/ then
+
+      found, token, remainder = lmatch(s.chars, '(',')')
+
+      if found == ')' then
+        a << token
+      end
+
+    elsif s =~ /^[\w\/]+\[/
+
+      found, token, remainder = lmatch(s.chars, '[',']') 
+      a << token
+      a2 = match remainder
+
+      token << a2.first if  a2.first 
+      a.concat a2[1..-1]
+
+      a2
+
+    else
+      token = s.slice!(/^[\w\/]+/)
+      a << token
+      remainder = s
+    end
+
+    operator = remainder.slice!(/^\s*\|\s*/)
+
+    if operator then
+      a.concat [operator, *match(remainder)]
+    end
+    
+    a
+  end
+
+
   # accepts a token and drills into it to identify more tokens beneath it
   #
   def scan(s)
@@ -141,5 +153,6 @@ class RexleXPathParser
   end
       
   alias tokenise match  
-
+      
+  
 end

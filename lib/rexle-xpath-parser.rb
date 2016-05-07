@@ -8,7 +8,7 @@ class RexleXPathParser
   attr_reader :to_a
 
   def initialize(string)
-    
+    #puts 'inside RExleXpathParser'
     tokens = tokenise string
     #puts 'tokens: ' + tokens.inspect
     nested_tokens = tokens.map {|x| scan(x)}
@@ -25,8 +25,8 @@ class RexleXPathParser
   def functionalise(a)
 
     a.map do |x|
-
-      if x =~ /[\w\/]+\[/ then
+      
+      r = if x =~ /[\w\/]+\[/ then
         
         epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
         
@@ -37,8 +37,11 @@ class RexleXPathParser
           []
         end
         
-        epath.split('/').map {|e| [:select, e]} + [:predicate, predicate] + r
+        epath.split('/').map {|e| [:select, e]} << \
+            [:predicate, RexleXPathParser.new(predicate).to_a] + r
         
+      elsif x =~ /=/  
+        [:text, :==, x[/=(.*)/,1].sub(/^["'](.*)["']$/,'\1')]
       elsif x =~ /\|/
         [:union] 
       elsif x =~ /\w+\(/
@@ -50,6 +53,8 @@ class RexleXPathParser
       elsif x.is_a? Array
         functionalise(x)
       end
+      
+      r
     
     end
 
@@ -110,6 +115,7 @@ class RexleXPathParser
 
     a = []
 
+    # e.g. position()
     if s =~ /^\w+\(/ then
 
       found, token, remainder = lmatch(s.chars, '(',')')
@@ -118,6 +124,7 @@ class RexleXPathParser
         a << token
       end
 
+    # e.g. b[c='45']
     elsif s =~ /^[\w\/]+\[/
 
       found, token, remainder = lmatch(s.chars, '[',']') 
@@ -139,6 +146,8 @@ class RexleXPathParser
 
     if operator then
       a.concat [operator, *match(remainder)]
+    else
+      a << remainder if remainder.length > 0
     end
     
     a

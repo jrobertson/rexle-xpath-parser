@@ -24,37 +24,35 @@ class RexleXPathParser
   #  
   def functionalise(a)
 
-    a.map do |x|
+    a.inject([]) do |r,x|
       
-      r = if x =~ /[\w\/]+\[/ then
+      if x =~ /[\w\/]+\[/ then
         
         epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
         
-        r = if remainder.length > 0 then
+        if remainder.length > 0 then
           remainder.slice!(0) if remainder[0] == '/'          
-          r = functionalise(match(remainder))
+          r << functionalise(match(remainder))
         else
-          []
+          r
         end
         
         epath.split('/').map {|e| [:select, e]} << \
             [:predicate, RexleXPathParser.new(predicate).to_a] + r
         
       elsif x =~ /=/  
-        [:text, :==, x[/=(.*)/,1].sub(/^["'](.*)["']$/,'\1')]
+        r[-1] << [:text, :==, x[/=(.*)/,1].sub(/^["'](.*)["']$/,'\1')]
       elsif x =~ /\|/
-        [:union] 
+        r << [:union] 
       elsif x =~ /\w+\(/
-        [x.chop.to_sym]
+        r << [x.chop.to_sym]
       elsif x =~ /\d+/
-        [:index, x[1..-2]]
+        r << [:index, x[1..-2]]
       elsif x =~ /[\w\/]+/
-        x.split('/').map {|e| [:select, e]}
+        r << x.split('/').map {|e| [:select, e]}
       elsif x.is_a? Array
-        functionalise(x)
+        r << functionalise(x)
       end
-      
-      r
     
     end
 

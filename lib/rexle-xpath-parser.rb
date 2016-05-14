@@ -26,7 +26,7 @@ class RexleXPathParser
 
     a.inject([]) do |r,x|
 
-      if x =~ /@[\w\/]+/ then 
+      if x =~ /^@[\w\/]+/ then 
         r << [[:attribute, x[/@(\w+)/,1]]]
       elsif x =~ /[\w\/]+\[/
         
@@ -50,6 +50,8 @@ class RexleXPathParser
         r << [x.chop.to_sym]
       elsif x =~ /\d+/
         r << [:index, x[1..-2]]
+      elsif x =~ /^\/\//
+        r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]        
       elsif x =~ /[\w\/]+/
         r << x.split('/').map {|e| [:select, e]}
       elsif x.is_a? Array

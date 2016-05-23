@@ -50,7 +50,7 @@ class RexleXPathParser
       elsif x =~ /\w+\(/
         r << [x.chop.to_sym]
       elsif x =~ /\d+/
-        r << [:index, x[1..-2]]
+        r << [:index, x]
       elsif x =~ /^\/\//
         r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]        
       elsif x.is_a? Array

@@ -28,8 +28,12 @@ class RexleXPathParser
 
       #puts 'x: ' + x.inspect
       
-      if x =~ /^@[\w\/]+/ then 
-        r << [[:attribute, x[/@(\w+)/,1]]]
+      return r << functionalise(x) if x.is_a? Array
+      
+      if /^(?<func>\w+)\(\)/ then
+        r << func.to_sym
+      elsif /^@(?<attribute>[\w\/]+)/ =~ x
+        r << [[:attribute, attribute]]
       elsif x =~ /^\/\//
         r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]                
       elsif x =~ /[\w\/]+\[/
@@ -54,8 +58,6 @@ class RexleXPathParser
         r << [x.chop.to_sym]
       elsif x =~ /\d+/
         r << [:index, x]
-      elsif x.is_a? Array
-        r << functionalise(x)        
       elsif /^attribute::(?<attribute>\w+)/ =~ x
         r << [:attribute, attribute]        
       elsif x =~ /[\w\/]+/
@@ -122,7 +124,9 @@ class RexleXPathParser
     a = []
 
     # e.g. position()
-    if s =~ /^\w+\(/ then
+    if /^\w+\(\)$/ =~ s then
+      a << s
+    elsif s =~ /^\w+\(/ 
 
       found, token, remainder = lmatch(s.chars, '(',')')
 
@@ -148,12 +152,14 @@ class RexleXPathParser
       remainder = s
     end
 
+    return a if remainder.nil? or remainder.empty?
+
     operator = remainder.slice!(/^\s*\|\s*/)
 
     if operator then
       a.concat [operator, *match(remainder)]
     else
-      a << remainder if remainder.length > 0
+      a << remainder
     end
     
     a
@@ -165,19 +171,23 @@ class RexleXPathParser
   def scan(s)
 
     if s =~ /^\w+\(/ then
+      
       func = s.slice!(/\w+\(/)
       remainder = s[0..-2]
+
+      return func if remainder.empty?
+      
       if remainder =~ /^\w+\(/ then
         scan(remainder)
       else
         [func, match(remainder)]
       end
+      
     else
       s
     end
   end
       
   alias tokenise match  
-      
-  
+ 
 end

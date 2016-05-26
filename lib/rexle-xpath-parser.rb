@@ -22,21 +22,19 @@ class RexleXPathParser
   # maps the nested tokens to XPath functions, predicates, operators, 
   #                                                      and 1 or more elements
   #  
-  def functionalise(a)
+  def functionalise(a, r2=[])
 
-    a.inject([]) do |r,x|
-
-      #puts 'x: ' + x.inspect
+    a.inject(r2) do |r,x|
       
       return r << functionalise(x) if x.is_a? Array
       
-      if /^(?<func>\w+)\(\)/ then
+      if /^(?<func>\w+)\(\)/ =~ x then
         r << func.to_sym
       elsif /^@(?<attribute>[\w\/]+)/ =~ x
         r << [[:attribute, attribute]]
       elsif x =~ /^\/\//
         r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]                
-      elsif x =~ /[\w\/]+\[/
+      elsif x =~ /^[\w\/]+\[/
         
         epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
         
@@ -60,8 +58,17 @@ class RexleXPathParser
         r << [:index, x]
       elsif /^attribute::(?<attribute>\w+)/ =~ x
         r << [:attribute, attribute]        
-      elsif x =~ /[\w\/]+/
-        r << x.split('/').map {|e| [:select, e]}
+      elsif /^(?<name>\w+)\/?/ =~ x
+        
+        x.slice!(/^\w+\/?/)
+        r3 = [[:select, name]]
+
+        if x.length > 0 then
+          functionalise([x], r3) 
+
+        end
+        r << r3        
+
       end
     
     end
@@ -123,6 +130,7 @@ class RexleXPathParser
 
     a = []
 
+    #puts 's: ' + s.inspect
     # e.g. position()
     if /^\w+\(\)$/ =~ s then
       a << s
@@ -145,8 +153,10 @@ class RexleXPathParser
       a.concat a2[1..-1]
 
       a2
-
+    elsif /^(?<name>\w+)\// =~ s
+      a << name <<  match($')
     else
+
       token = s.slice!(/^[@?\w\/:]+/)
       a << token
       remainder = s

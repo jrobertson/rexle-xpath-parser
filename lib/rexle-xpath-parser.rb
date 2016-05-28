@@ -34,7 +34,7 @@ class RexleXPathParser
         r << [[:attribute, attribute]]
       elsif x =~ /^\/\//
         r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]                
-      elsif x =~ /^[\w\/]+\[/
+      elsif x =~ /^[\w\/\*]+\[/
         
         epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
         
@@ -58,9 +58,9 @@ class RexleXPathParser
         r << [:index, x]
       elsif /^attribute::(?<attribute>\w+)/ =~ x
         r << [:attribute, attribute]        
-      elsif /^(?<name>\w+)\/?/ =~ x
+      elsif /^(?<name>[\w\*]+)\/?/ =~ x
         
-        x.slice!(/^\w+\/?/)
+        x.slice!(/^[\w\*]+\/?/)
         r3 = [[:select, name]]
 
         if x.length > 0 then
@@ -143,7 +143,7 @@ class RexleXPathParser
       end
 
     # e.g. b[c='45']
-    elsif s =~ /^[\w\/]+\[/
+    elsif s =~ /^[\w\/\*]+\[/
 
       found, token, remainder = lmatch(s.chars, '[',']') 
       a << token
@@ -153,11 +153,11 @@ class RexleXPathParser
       a.concat a2[1..-1]
 
       a2
-    elsif /^(?<name>\w+)\// =~ s
+    elsif /^(?<name>[\w\*]+)\// =~ s
       a << name <<  match($')
     else
 
-      token = s.slice!(/^[@?\w\/:]+/)
+      token = s.slice!(/^[@?\w\/:\*]+/)
       a << token
       remainder = s
     end

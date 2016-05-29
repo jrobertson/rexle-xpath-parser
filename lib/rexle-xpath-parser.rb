@@ -25,7 +25,7 @@ class RexleXPathParser
   def functionalise(a, r2=[])
 
     a.inject(r2) do |r,x|
-      
+
       return r << functionalise(x) if x.is_a? Array
       
       if /^(?<func>\w+)\(\)/ =~ x then
@@ -37,6 +37,10 @@ class RexleXPathParser
       elsif x =~ /^[\w\/\*]+\[/
         
         epath, predicate, remainder = x.match(/^([^\[]+)\[([^\]]+)\](.*)/).captures
+
+        r.concat epath.split('/').map {|e| [:select, e]} << \
+            [:predicate, RexleXPathParser.new(predicate).to_a] 
+
         
         if remainder.length > 0 then
           remainder.slice!(0) if remainder[0] == '/'          
@@ -45,8 +49,6 @@ class RexleXPathParser
           r
         end
         
-        epath.split('/').map {|e| [:select, e]} << \
-            [:predicate, RexleXPathParser.new(predicate).to_a] + r
         
       elsif x =~ /=/  
         r[-1] << [:value, :==, x[/=(.*)/,1].sub(/^["'](.*)["']$/,'\1')]
@@ -157,7 +159,7 @@ class RexleXPathParser
       a << name <<  match($')
     else
 
-      token = s.slice!(/^[@?\w\/:\*]+/)
+      token = s.slice!(/^[@?\w\/:\*\(\)]+/)
       a << token
       remainder = s
     end

@@ -25,7 +25,9 @@ class RexleXPathParser
   def functionalise(a, r2=[])
 
     a.inject(r2) do |r,x|
-
+      
+      #puts 'x: ' + x.inspect
+      
       return r << functionalise(x) if x.is_a? Array
       
       if /^(?<func>\w+)\(\)/ =~ x then
@@ -49,9 +51,10 @@ class RexleXPathParser
           r
         end
         
-        
-      elsif x =~ /=/  
-        r[-1] << [:value, :==, x[/=(.*)/,1].sub(/^["'](.*)["']$/,'\1')]
+      elsif /!=(?<value>.*)/  =~ x
+        r[-1] << [:value, :'!=', value.sub(/^["'](.*)["']$/,'\1')]        
+      elsif /=(?<value>.*)/  =~ x
+        r[-1] << [:value, :==, value.sub(/^["'](.*)["']$/,'\1')]
       elsif x =~ /\|/
         r << [:union] 
       elsif x =~ /\w+\(/

@@ -63,9 +63,9 @@ class RexleXPathParser
         r << [:index, x]
       elsif /^attribute::(?<attribute>\w+)/ =~ x
         r << [:attribute, attribute]        
-      elsif /^(?<name>[\w\*]+)\/?/ =~ x
+      elsif /^(?<name>[\w\*\.]+)\/?/ =~ x
         
-        x.slice!(/^[\w\*]+\/?/)
+        x.slice!(/^[\w\*\.]+\/?/)
         r3 = [[:select, name]]
 
         if x.length > 0 then
@@ -162,7 +162,7 @@ class RexleXPathParser
       a << name <<  match($')
     else
 
-      token = s.slice!(/^[@?\w\/:\*\(\)]+/)
+      token = s.slice!(/^[@?\w\/:\*\(\)\.]+/)
       a << token
       remainder = s
     end

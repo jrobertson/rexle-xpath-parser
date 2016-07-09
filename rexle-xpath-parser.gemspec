@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'rexle-xpath-parser'
-  s.version = '0.1.17'
+  s.version = '0.1.18'
   s.summary = 'rexle-xpath-parser'
   s.authors = ['James Robertson']
   s.files = Dir['lib/**/*.rb']

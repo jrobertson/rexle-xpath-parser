@@ -26,8 +26,6 @@ class RexleXPathParser
 
     a.inject(r2) do |r,x|
       
-      #puts 'x: ' + x.inspect
-      
       return r << functionalise(x) if x.is_a? Array
       
       if /^(?<func>\w+)\(\)/ =~ x then
@@ -57,6 +55,8 @@ class RexleXPathParser
         r[-1] << [:value, :==, value.sub(/^["'](.*)["']$/,'\1')]
       elsif x =~ /\|/
         r << [:union] 
+      elsif x =~ /\s+or\s+/
+        r << :|
       elsif x =~ /\w+\(/
         r << [x.chop.to_sym]
       elsif x =~ /\d+/
@@ -149,7 +149,7 @@ class RexleXPathParser
 
     # e.g. b[c='45']
     elsif s =~ /^[\w\/\*]+\[/
-
+      
       found, token, remainder = lmatch(s.chars, '[',']') 
       a << token
       a2 = match remainder
@@ -169,7 +169,7 @@ class RexleXPathParser
 
     return a if remainder.nil? or remainder.empty?
 
-    operator = remainder.slice!(/^\s*\|\s*/)
+    operator = remainder.slice!(/^\s*(?:\||or)\s*/)
 
     if operator then
       a.concat [operator, *match(remainder)]

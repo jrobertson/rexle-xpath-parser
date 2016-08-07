@@ -24,14 +24,23 @@ class RexleXPathParser
   #  
   def functionalise(a, r2=[])
 
-    a.inject(r2) do |r,x|
+    r4 = a.inject(r2) do |r,x|
       
       return r << functionalise(x) if x.is_a? Array
       
-      if /^(?<func>\w+)\(\)/ =~ x then
-        r << func.to_sym
+      if x =~ /^or$/ then
+        r << :|
+
+      elsif /^(?<func>\w+)\(\)(?:\s+(?<operator>[<>=])\s+(?<value>\w+))?/ =~ x
+
+        r << if operator then
+            x = ''
+          [func.to_sym, operator.to_sym, value]
+        else
+          func.to_sym
+        end
       elsif /^@(?<attribute>[\w\/]+)/ =~ x
-        r << [[:attribute, attribute]]
+        r << [:attribute, attribute]
       elsif x =~ /^\/\//
         r << [:recursive, *RexleXPathParser.new(x[2..-1]).to_a]                
       elsif x =~ /^[\w\/\*]+\[/
@@ -50,9 +59,9 @@ class RexleXPathParser
         end
         
       elsif /!=(?<value>.*)/  =~ x
-        r[-1] << [:value, :'!=', value.sub(/^["'](.*)["']$/,'\1')]        
+        r << [:value, :'!=', value.sub(/^["'](.*)["']$/,'\1')]        
       elsif /=(?<value>.*)/  =~ x
-        r[-1] << [:value, :==, value.sub(/^["'](.*)["']$/,'\1')]
+        r << [:value, :==, value.sub(/^["'](.*)["']$/,'\1')]
       elsif x =~ /\|/
         r << [:union] 
       elsif x =~ /\s+or\s+/
@@ -63,20 +72,24 @@ class RexleXPathParser
         r << [:index, x]
       elsif /^attribute::(?<attribute>\w+)/ =~ x
         r << [:attribute, attribute]        
-      elsif /^(?<name>[\w\*\.]+)\/?/ =~ x
+      elsif x.is_a? String and /^(?<name>[\w\*\.]+)\/?/ =~ x
         
         x.slice!(/^[\w\*\.]+\/?/)
-        r3 = [[:select, name]]
+        r3 = [:select, name]
 
         if x.length > 0 then
           functionalise([x], r3) 
 
         end
         r << r3        
+      else
 
+        r
       end
     
     end
+
+    r4
 
   end
   
@@ -134,11 +147,21 @@ class RexleXPathParser
   def match(s)
 
     a = []
-
-    #puts 's: ' + s.inspect
+    
+    # it's a function with no arguments
     # e.g. position()
-    if /^\w+\(\)$/ =~ s then
+    if /^\w+\(\)/ =~ s then
+
       a << s
+
+    elsif /^\w+\(\)/ =~ s then
+      
+      fn, operator, val = s.match(/^(\w+)\(\)\s+(<|>|=)\s+(\w+)/).captures
+
+      a << [fn.to_sym, operator.to_sym, val]
+      return a
+      
+    # it's a function with arguments      
     elsif s =~ /^\w+\(/ 
 
       found, token, remainder = lmatch(s.chars, '(',')')
@@ -147,6 +170,7 @@ class RexleXPathParser
         a << token
       end
 
+    # it contains a predicate
     # e.g. b[c='45']
     elsif s =~ /^[\w\/\*]+\[/
       
@@ -158,16 +182,21 @@ class RexleXPathParser
       a.concat a2[1..-1]
 
       a2
+      
+    # it's an element name e.g. b
     elsif /^(?<name>[\w\*]+)\// =~ s
       a << name <<  match($')
+      
+    # it's something else e.g. @colour='red'
     else
 
       token = s.slice!(/^[@?\w\/:\*\(\)\.]+/)
+
       a << token
       remainder = s
     end
 
-    return a if remainder.nil? or remainder.empty?
+    return a if remainder.nil? or remainder.strip.empty?
 
     operator = remainder.slice!(/^\s*(?:\||or)\s*/)
 
@@ -185,7 +214,7 @@ class RexleXPathParser
   #
   def scan(s)
 
-    if s =~ /^\w+\(/ then
+    if s =~ /^\w+\([^\)]/ then
       
       func = s.slice!(/\w+\(/)
       remainder = s[0..-2]
@@ -203,6 +232,22 @@ class RexleXPathParser
     end
   end
       
-  alias tokenise match  
+  #alias tokenise match  
+  def tokenise(s)
+    
+    if s =~ /\[/ then
+      match s
+    else
+      s.split(/(?=\bor\b)/).flat_map do |x| 
+
+        if /^or\b\s+(?<exp>.*)/ =~ x then
+          match(exp).unshift 'or'
+        else
+          match x
+        end
+
+      end
+    end
+  end
  
 end

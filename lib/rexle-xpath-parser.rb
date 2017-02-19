@@ -61,7 +61,7 @@ class RexleXPathParser
       elsif /!=(?<value>.*)/  =~ x
         r << [:value, :'!=', value.sub(/^["'](.*)["']$/,'\1')]        
       elsif /=(?<value>.*)/  =~ x
-        r << [:value, :==, value.sub(/^["'](.*)["']$/,'\1')]
+        r << [:value, :==, value.sub(/^["'](.*)["']\s*$/,'\1')]
       elsif x =~ /\|/
         r << [:union] 
       elsif x =~ /\s+or\s+/
